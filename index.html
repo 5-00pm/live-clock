@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Midnight Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@200;300&family=Josefin+Sans:wght@100;200;300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      -webkit-tap-highlight-color: transparent;
+      cursor: none;
+    }
+
+    /* ── Video Background ── */
+    .video-bg {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    /* ── Layered overlays for depth ── */
+    .overlay-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background:
+        radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 100%),
+        linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 45%, rgba(0,0,0,0.35) 100%);
+    }
+
+    /* ── Clock wrapper ── */
+    .clock-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* ── Time row ── */
+    .time-row {
+      display: flex;
+      align-items: flex-start;
+      line-height: 1;
+      position: relative;
+    }
+
+    .time-hhmm {
+      font-family: 'Cormorant', serif;
+      font-weight: 200;
+      font-size: clamp(5.5rem, 19vw, 14rem);
+      color: rgba(255, 255, 255, 0.93);
+      letter-spacing: 0.03em;
+      text-shadow:
+        0 0 120px rgba(200, 220, 255, 0.12),
+        0 2px 40px rgba(0, 0, 0, 0.4);
+      animation: softBreathe 10s ease-in-out infinite;
+    }
+
+    .time-right-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-self: stretch;
+      padding: 0.5em 0 0.55em 0.6rem;
+    }
+
+    .time-ampm {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: clamp(0.75rem, 1.8vw, 1.3rem);
+      color: rgba(255, 255, 255, 0.38);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+    }
+
+    .time-sec {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: clamp(1.1rem, 2.6vw, 2rem);
+      color: rgba(255, 255, 255, 0.50);
+      letter-spacing: 0.08em;
+      align-self: flex-end;
+      transition: color 0.4s ease;
+    }
+
+    .time-sec.tick {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 1.4rem 0 1.2rem;
+      width: clamp(180px, 38vw, 480px);
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22));
+    }
+    .divider-line.right {
+      background: linear-gradient(90deg, rgba(255,255,255,0.22), transparent);
+    }
+
+    .divider-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    /* ── Date ── */
+    .date-display {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: clamp(0.55rem, 1.35vw, 1rem);
+      color: rgba(255, 255, 255, 0.52);
+      letter-spacing: 0.55em;
+      text-transform: uppercase;
+    }
+
+    /* ── Seconds progress bar (bottom edge) ── */
+    .progress-track {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+      z-index: 3;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35));
+      transition: width 1s linear;
+      will-change: width;
+    }
+
+    /* ── Animations ── */
+    @keyframes softBreathe {
+      0%, 100% { opacity: 0.88; }
+      50%       { opacity: 0.97; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .clock-wrap {
+      animation: fadeIn 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  </style>
+</head>
+<body>
+
+  <video class="video-bg" id="bgVideo" autoplay muted loop playsinline disablepictureinpicture>
+    <source src="bg.mp4" type="video/mp4">
+  </video>
+
+  <div class="overlay-vignette"></div>
+
+  <div class="clock-wrap" aria-live="off">
+    <div class="time-row">
+      <span class="time-hhmm" id="timeHHMM">00:00</span>
+      <div class="time-right-col">
+        <span class="time-ampm"  id="timeAMPM">AM</span>
+        <span class="time-sec"   id="timeSec">00</span>
+      </div>
+    </div>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-dot"></div>
+      <div class="divider-line right"></div>
+    </div>
+
+    <div class="date-display" id="dateDisplay">Monday — January 01</div>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <script>
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+
+    const elHHMM     = document.getElementById('timeHHMM');
+    const elSec      = document.getElementById('timeSec');
+    const elAMPM     = document.getElementById('timeAMPM');
+    const elDate     = document.getElementById('dateDisplay');
+    const elProgress = document.getElementById('progressFill');
+
+    let lastSec = -1;
+
+    function update() {
+      const now = new Date();
+      const rawH = now.getHours();
+      const m    = now.getMinutes();
+      const s    = now.getSeconds();
+      const ampm = rawH >= 12 ? 'PM' : 'AM';
+      const h    = rawH % 12 || 12;
+
+      elHHMM.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+      elAMPM.textContent = ampm;
+
+      if (s !== lastSec) {
+        elSec.textContent = String(s).padStart(2,'0');
+        elSec.classList.add('tick');
+        setTimeout(() => elSec.classList.remove('tick'), 350);
+        lastSec = s;
+      }
+
+      elDate.textContent = DAYS[now.getDay()] + ' \u2014 ' + MONTHS[now.getMonth()] + ' ' + String(now.getDate()).padStart(2,'0');
+      elProgress.style.width = ((s / 60) * 100) + '%';
+    }
+
+    update();
+    setInterval(update, 500);
+
+    /* Wake Lock — keeps screen on in supporting Android browsers */
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          const lock = await navigator.wakeLock.request('screen');
+          document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+              await navigator.wakeLock.request('screen');
+            }
+          });
+        }
+      } catch (_) { /* silently ignore */ }
+    }
+    requestWakeLock();
+
+    /* Ensure video plays even after Android backgrounding */
+    document.addEventListener('visibilitychange', () => {
+      const v = document.getElementById('bgVideo');
+      if (document.visibilityState === 'visible' && v.paused) v.play();
+    });
+  </script>
+</body>
+</html>
